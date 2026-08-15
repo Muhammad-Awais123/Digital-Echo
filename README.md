@@ -1,4 +1,4 @@
-<div align="center">
+<<div align="center">
 
 # 🔎 Digital Echo — CTF Write-up
 
@@ -8,12 +8,26 @@
 ![Time](https://img.shields.io/badge/Time-60%20min-6C5CE7?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Completed-22C55E?style=for-the-badge)
 
+### 🕵️ OSINT / Forensics Investigation
 
+**Category:** OSINT / Forensics  
+**Platform:** TryHackMe  
+**Room:** Digital Echo  
+**Investigation Chain:**  
+🖼️ Image Metadata → 👤 GitHub → 🔑 GPG Identity → 🕵️ Git History → 🐦 X/Twitter → 🔳 QR Code → 📰 News Provenance
 
-**Category:** OSINT 
-**Chain:** 🖼️ Image metadata → 👤 GitHub repository → 🔑 GPG key identity → 🕵️ Deleted git history → 🐦 X (Twitter) → 🔳 QR code → 📰 News article corroboration
-<img src="./assets/room-ui.png">
+<br>
+
+<a href="https://tryhackme.com/room/digitalecho">
+  <img src="./assets/room-ui.png" alt="TryHackMe Digital Echo Room" width="900">
+</a>
+
+<br>
+
+**🔗 [View Digital Echo on TryHackMe](https://tryhackme.com/room/digitalecho)**
+
 </div>
+
 
 
 ## 🧩 Room 1: The First Trace
