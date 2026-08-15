@@ -19,7 +19,7 @@
 <br>
 
 <a href="https://tryhackme.com/room/digitalecho">
-  <img src="./assets/room-ui.png" alt="TryHackMe Digital Echo Room" width="900">
+  <img src="./assets/DigEcho.jpeg" alt="TryHackMe Digital Echo Room" width="900">
 </a>
 
 <br>
