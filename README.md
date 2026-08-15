@@ -1,110 +1,56 @@
-# Digital Echo — CTF Write-up
+<div align="center">
 
-> **Platform:** TryHackMe  
-> **Room:** Digital Echo  
-> **Category:** OSINT / Forensics  
-> **Investigation Chain:** The First Trace → The Vanishing File → Provenance
+# 🔎 Digital Echo — CTF Write-up
 
-## 🔗 Room Link
+![Platform](https://img.shields.io/badge/Platform-TryHackMe-1CB89C?style=for-the-badge&logo=tryhackme&logoColor=white)
+![Category](https://img.shields.io/badge/Category-OSINT%20%2F%20Forensics-0EA5E9?style=for-the-badge)
+![Difficulty](https://img.shields.io/badge/Difficulty-Medium-F5A623?style=for-the-badge)
+![Time](https://img.shields.io/badge/Time-60%20min-6C5CE7?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Completed-22C55E?style=for-the-badge)
 
-**TryHackMe Room:**  
-https://tryhackme.com/room/digitalecho
 
-## 🖥️ Room UI
 
-The investigation is performed through the TryHackMe **Digital Echo** room interface.
+**Category:** OSINT 
+**Chain:** 🖼️ Image metadata → 👤 GitHub repository → 🔑 GPG key identity → 🕵️ Deleted git history → 🐦 X (Twitter) → 🔳 QR code → 📰 News article corroboration
+<img src="./assets/room-ui.png">
+</div>
 
-![Digital Echo TryHackMe Room UI](assets/room-ui.png)
 
----
+## 🧩 Room 1: The First Trace
 
-# Overview
+> **🎯 Objective**
+> Identify the persistent identity left behind by an image artifact, then use that identity to recover a hidden email address from a repository file.
 
-**Digital Echo** is an OSINT and forensics investigation built around a fragmented digital footprint. The investigation begins with a seemingly ordinary photograph and gradually moves through image metadata, GitHub, GPG keys, Git history, X/Twitter, QR-code analysis, and open web sources.
+### 🏷️ Step 1 — Download the image and pull metadata
 
-The main investigation chain is:
-
-```text
-Recovered Photograph
-        ↓
-EXIF Metadata
-        ↓
-Artist: lunarTracesz
-        ↓
-GitHub Profile
-        ↓
-photo-journal Repository
-        ↓
-key.asc
-        ↓
-GPG Identity / Email
-        ↓
-Git History
-        ↓
-Deleted ticket_log.md
-        ↓
-X Username
-        ↓
-FIFA World Cup Ticket
-        ↓
-QR Code
-        ↓
-Flag
-        ↓
-BBC News Article
-        ↓
-Rebecka Pieder / Hard Rock Stadium / MIA
-```
-
----
-
-# Task 1 — The First Trace
-
-## Objective
-
-Identify the persistent identity embedded in the recovered photograph, then use it to pivot to a public code repository and extract a hidden identity from a non-text file.
-
-## Step 1 — Extract Metadata from the Image
-
-The photograph does not reveal much information visually, so the first step is to inspect its metadata.
-
-I used `exiftool`:
+The challenge hints that *"the file itself may know more about its origin than the pixels do"* — a direct pointer to EXIF/metadata inspection rather than visual analysis.
 
 ```bash
-exiftool <image-file>.jpg
+exiftool image.jpg
 ```
 
-The `Artist` field revealed the persistent identity associated with the photograph:
+Inside the metadata, the `Artist` field contained a value that was not visible anywhere in the image itself:
 
 ```text
 Artist: lunarTracesz
 ```
 
-### 🚩 Flag 1
+> 🚩 **Flag 1 (persistent identity / username)**
+> ```text
+> lunarTracesz
+> ```
 
-```text
-lunarTracesz
-```
+### 🔍 Step 2 — Pivot to the public footprint
 
-This username became the first OSINT pivot.
+Using the recovered username as a pivot point (per the prompt: *"use it as your initial pivot"*), a search for the handle on GitHub resolved to a real account:
 
----
+🔗 https://github.com/lunarTracesz
 
-## Step 2 — Pivot to the Public Footprint
+That account hosts a repository called `photo-journal`:
 
-Searching for the recovered username led to a matching GitHub account:
+🔗 https://github.com/lunarTracesz/photo-journal.git
 
-https://github.com/lunarTracesz
-
-The profile contained a repository named **photo-journal**:
-
-https://github.com/lunarTracesz/photo-journal
-
----
-
-## Step 3 — Clone the Repository
-
-I cloned the repository locally:
+### 📦 Step 3 — Clone the repo and inspect the suspicious file
 
 ```bash
 git clone https://github.com/lunarTracesz/photo-journal.git
@@ -112,302 +58,138 @@ cd photo-journal
 ls
 ```
 
-The repository contained:
+<details>
+<summary>📂 Repository contents</summary>
 
 ```text
-iamge-2.jpg
-iamge_3.jpg
-image-1.jpg
-key.asc
-README.md
+iamge-2.jpg  iamge_3.jpg  image-1.jpg  key.asc  README.md
 ```
 
-The file `key.asc` immediately stood out because it was an ASCII-armored GPG key rather than an ordinary text file.
+</details>
 
----
-
-## Step 4 — Investigate `key.asc`
-
-I imported the key and inspected the available GPG identities:
+`key.asc` is the file *"never meant to be read like an ordinary text file"* — it's an ASCII-armored **GPG key**, not plaintext. Importing it and listing secret keys reveals the identity bound to it:
 
 ```bash
 gpg --import key.asc
 gpg --list-secret-keys
 ```
 
-The output revealed:
+<details>
+<summary>🖥️ Output</summary>
 
 ```text
 sec   rsa4032 2026-07-18 [SC]
       002553C7CD6E2D209F6C642BC8B1F9425BFACBEC
-uid   [ultimate] Elena Voss (History remembers what the latest commit forgot)
-      <elena4sure@gmail.com>
+uid   [ultimate] Elena Voss (History remembers what the latest commit forgot) <elena4sure@gmail.com>
 ssb   rsa4032 2026-07-18 [E]
 ```
 
-The identity attached to the key was:
+</details>
 
-**Elena Voss**
+The UID comment — *"History remembers what the latest commit forgot"* — is a deliberate nod toward the next room: the repo's **git history**, not its current working tree, holds the next lead.
 
-The associated email address was:
-
-```text
-elena4sure@gmail.com
-```
-
-### 🚩 Flag 2
-
-```text
-elena4sure@gmail.com
-```
-
-### Important Clue
-
-The GPG identity contained the comment:
-
-> **History remembers what the latest commit forgot**
-
-This strongly suggested that the next clue would be found in the repository's **Git history**, rather than in the current working tree.
+> 🚩 **Flag 2 (recovered identity / email)**
+> ```text
+> elena4sure@gmail.com
+> ```
 
 ---
 
-# Task 2 — The Vanishing File
+## 🧩 Room 2: The Vanishing File
 
-## Objective
+> **🎯 Objective**
+> Recover a file that was deleted before the repo was "cleaned up," extract a surviving handle from it, and pull a machine-readable value out of the image it leads to.
 
-Recover information that had been removed from the current repository, follow the surviving handle to X/Twitter, and decode a machine-readable artifact.
+### 🕵️ Step 1 — Recover deleted history
 
-## Step 1 — Recover the Deleted File
-
-Following the clue from the GPG key, I investigated the repository's Git history.
-
-First, I searched for deleted files:
+The current working tree looks clean — the deleted file (`ticket_log.md`) doesn't exist in the latest commit. Full history has to be walked instead:
 
 ```bash
-git log --diff-filter=D --summary
-```
-
-I then specifically searched for `ticket_log.md`:
-
-```bash
+git log --diff-filter=D --summary          # find commits that deleted files
 git log --all --full-history -- ticket_log.md
 ```
 
-After identifying the relevant commit, I recovered the contents of the deleted file:
+Once the commit *before* deletion is found, the file's content can be dumped directly from the object store:
 
 ```bash
 git show <commit-hash>:ticket_log.md
 ```
 
-Although `ticket_log.md` was no longer present in the latest version of the repository, Git preserved its previous contents.
+This recovered a personal "FIFA World Cup ticket log" file that was never meant to survive the cleanup, containing an X (Twitter) handle left behind in the notes.
 
-The recovered file contained:
+> 🚩 **Flag 1 (surviving external-platform handle)**
+> ```text
+> 0nIyH4AIand
+> ```
 
-```text
-X: @0nIyH4AIand
-Internal Reference: ZmxhZ3tGbEZBX1cwUkxEQ1U5X1RSQUMzXzJPMjZ9
-```
+### 🔳 Step 2 — Follow the handle to X and decode the QR
 
-The surviving X/Twitter handle became the next OSINT pivot:
+Pivoting to 🔗 `https://x.com/0nIyH4AIand`, the account's post shows a photo of the user's FIFA World Cup match ticket. Embedded in that image is a **QR code** — the *"information meant for machines rather than human readers"* referenced in the prompt.
 
-```text
-@0nIyH4AIand
-```
-
----
-
-## Step 2 — Investigate the Base64 Artifact
-
-The deleted commit also contained the Base64 string:
-
-```text
-ZmxhZ3tGbEZBX1cwUkxEQ1U5X1RSQUMzXzJPMjZ9
-```
-
-It can be decoded with:
+Decoding the QR (any online QR reader, or `zbarimg`/`zxing` locally) revealed the concealed value:
 
 ```bash
-echo 'ZmxhZ3tGbEZBX1cwUkxEQ1U5X1RSQUMzXzJPMjZ9' | base64 -d
+zbarimg ticket_qr.jpg
 ```
 
-This Base64 value acts as a **secondary artifact/clue** embedded in the commit. It supports the conclusion that information was intentionally obfuscated before the file was removed.
-
-> **Note:** This secondary Base64 artifact should not be confused with the main QR-code flag obtained later.
+> 🚩 **Flag 2 (value concealed in the visual artifact)**
+> ```text
+> flag{FlF4_W0RLDCUP_L0V3R}
+> ```
 
 ---
 
-## Step 3 — Follow the Handle to X
+## 🧩 Room 3: Provenance
 
-I investigated the recovered account:
+> **🎯 Objective**
+> Trace an image shared by the account back to its original published source, identify the associated event, and independently corroborate the venue.
 
-https://x.com/0nIyH4AIand
+### 📰 Step 1 — Identify the original source
 
-The account contained a post featuring a **FIFA World Cup match ticket**.
+The X account's first post uses, as its thumbnail, an image lifted from a BBC News article rather than an original photo:
 
-The ticket included a **QR code**, representing information intended to be read by machines rather than humans.
+🔗 https://www.bbc.com/news/articles/ceqd3l4v7reo
 
-I decoded the QR code using a QR-code decoder.
+Reading the article surfaces:
 
-The decoded value was:
+- ✍️ **Author:** Rebecka Pieder
+- 📰 **Publication:** BBC News
 
-### 🚩 Flag 3
+### 🌍 Step 2 — Corroborate the venue
 
+The article ties the photo to a specific World Cup quarter-final. Cross-referencing the match details identifies:
+
+**🏟️ Stadium:**
 ```text
-flag{FlF4_W0RLDCUP_L0V3R}
+Hard Rock Stadium
 ```
+(officially rebranded "Miami Stadium" for the tournament under FIFA's naming-rights policy; hosted the Norway vs. England quarter-final).
+
+**✈️ Nearby international airport (three-letter code):**
+```text
+MIA
+```
+(Miami International Airport — the geographical neighbor "capable of receiving international travellers.")
 
 ---
 
-# Task 3 — Provenance
+## 🏁 Summary of Flags
 
-## Objective
-
-Trace an image posted by the account back to its original source and identify the relevant author, venue, and nearby international airport.
-
-## Step 1 — Identify the Original Source
-
-I returned to the X account and examined its first post.
-
-The thumbnail image used in the post appeared to originate from a published **BBC News** article:
-
-https://www.bbc.com/news/articles/ceqd3l4v7reo
-
----
-
-## Step 2 — Extract the Relevant Details
-
-After investigating the article and cross-referencing the reported event and locations, the relevant details were identified as follows:
-
-| Detail | Value |
-|---|---|
-| Author | **Rebecka Pieder** |
-| Stadium | **Hard Rock Stadium** |
-| Location | **Miami Gardens, Florida** |
-| Nearby international airport | **Miami International Airport** |
-| Airport code | **MIA** |
-
-The connected stadium was **Hard Rock Stadium** in Miami Gardens, Florida.
-
----
-
-# Summary of Flags / Answers
-
-| # | Question | Answer |
+| Room | Step | Flag / Value |
 |---|---|---|
-| 1 | Persistent identity in photo metadata | `lunarTracesz` |
-| 2 | Email tied to identity in `key.asc` | `elena4sure@gmail.com` |
-| 3 | External-platform handle recovered from Git history | `@0nIyH4AIand` |
-| 4 | Value concealed in the QR artifact | `flag{FlF4_W0RLDCUP_L0V3R}` |
-| 5 | Author of the original source story | **Rebecka Pieder** |
-| 6 | Stadium hosting the connected quarter-final | **Hard Rock Stadium** |
-| 7 | Three-letter airport code | **MIA** |
+| The First Trace | Persistent identity (EXIF Artist field) | `lunarTracesz` |
+| The First Trace | Identity behind `key.asc` (GPG UID) | `elena4sure@gmail.com` |
+| The Vanishing File | Surviving handle (recovered deleted commit) | `@0nIyH4AIand` |
+| The Vanishing File | QR code payload | `flag{FlF4_W0RLDCUP_L0V3R}` |
+| Provenance | Original publication / author | BBC News — Rebecka Pieder |
+| Provenance | Match venue | Hard Rock Stadium (Miami Stadium) |
+| Provenance | Nearby international airport code | `MIA` |
 
----
+## 🛠️ Key Techniques Used
 
-# Tools Used
-
-| Tool | Purpose |
-|---|---|
-| `exiftool` | Extracting image metadata |
-| `git clone` | Cloning the public repository |
-| `git log` | Investigating repository history |
-| `git show` | Recovering the deleted file |
-| `gpg --import` | Importing the ASCII-armored key |
-| `gpg --list-secret-keys` | Inspecting the identity attached to the key |
-| QR decoder | Extracting machine-readable information from the FIFA ticket |
-| Manual OSINT | Pivoting between GitHub, X/Twitter, and BBC News |
-
----
-
-# Key Takeaways
-
-### 1. Do not rely only on what is visible
-
-A photograph may look completely ordinary while its metadata contains useful investigative information.
-
-### 2. Metadata can provide a persistent identity
-
-The `Artist` EXIF field revealed:
-
-```text
-lunarTracesz
-```
-
-This provided the first pivot.
-
-### 3. Non-text files can contain valuable information
-
-The `key.asc` file was not intended to be interpreted as a normal text document. Treating it as a GPG key revealed:
-
-```text
-Elena Voss
-elena4sure@gmail.com
-```
-
-### 4. Deleted files may still survive in Git history
-
-Removing a file from the current working tree does not necessarily erase its historical versions.
-
-The following commands were useful:
-
-```bash
-git log --all --full-history -- ticket_log.md
-```
-
-```bash
-git show <commit-hash>:ticket_log.md
-```
-
-### 5. Every discovery can become an OSINT pivot
-
-The investigation followed a continuous chain:
-
-```text
-lunarTracesz
-    ↓
-GitHub
-    ↓
-key.asc
-    ↓
-Elena Voss
-    ↓
-Git History
-    ↓
-ticket_log.md
-    ↓
-0nIyH4AIand
-    ↓
-X/Twitter
-    ↓
-FIFA Ticket
-    ↓
-QR Code
-    ↓
-Flag
-```
-
----
-
-# Conclusion
-
-The **Digital Echo** investigation demonstrates how OSINT and digital forensics can be combined to reconstruct a fragmented digital footprint.
-
-The investigation started with a single photograph. Its metadata revealed the username `lunarTracesz`, which led to a public GitHub profile. The associated repository contained a GPG key that revealed another identity and included a clue pointing toward Git history.
-
-Investigating the historical commits uncovered the deleted `ticket_log.md` file. The file provided an X/Twitter handle, which led to a FIFA World Cup ticket containing a QR code. Decoding that QR code produced the main flag.
-
-The investigation then continued through the account's earlier post to its original BBC News source, revealing the relevant author, stadium, and airport information.
-
-The key lesson is simple:
-
-> **Every file has a history. Some of it simply isn't visible.**
-
----
-
-## References
-
-- TryHackMe — Digital Echo: https://tryhackme.com/room/digitalecho
-- GitHub — lunarTracesz: https://github.com/lunarTracesz
-- GitHub — photo-journal: https://github.com/lunarTracesz/photo-journal
-- X/Twitter — recovered account: https://x.com/0nIyH4AIand
-- BBC News — source article: https://www.bbc.com/news/articles/ceqd3l4v7reo
+1. 🏷️ **EXIF/metadata extraction** (`exiftool`) — the first and most overlooked lead in an "innocent-looking" image.
+2. 🔍 **OSINT pivoting** — treating a recovered username as a search key across platforms (GitHub, X).
+3. 🔑 **GPG key inspection** (`gpg --import`, `gpg --list-secret-keys`) — identity data is often embedded in key UIDs, not just certificates.
+4. 🕵️ **Git forensics** (`git log --diff-filter=D`, `git show <hash>:<path>`) — recovering content that was deleted from the working tree but never purged from history.
+5. 🔳 **QR/steganographic decoding** — recognizing "machine-readable" language as a cue to look for QR codes or embedded metadata rather than visible text.
+6. 📰 **Source verification** — tracing a reused image back to its original publisher/author to corroborate real-world facts (venue, event, location).
